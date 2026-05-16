@@ -44,7 +44,15 @@ Opcode opcodeFromMnemonic(const std::string& mnemonic) {
         {"MOV.LANEID", Opcode::MovLaneId},
         {"MOV.WARPID", Opcode::MovWarpId},
         {"MOV.CTAID", Opcode::MovCtaId},
+        {"MOV.TID", Opcode::MovTid},
+        {"MOV.GTID", Opcode::MovGtid},
         {"MOV.NTID", Opcode::MovNtid},
+        {"MOV.NCTA", Opcode::MovNcta},
+        {"VOTE.ALL", Opcode::VoteAll},
+        {"VOTE.ANY", Opcode::VoteAny},
+        {"BALLOT", Opcode::Ballot},
+        {"SHFL.IDX", Opcode::ShflIdx},
+        {"BAR.SYNC", Opcode::BarSync},
     };
 
     const auto normalized = normalizeMnemonic(mnemonic);

@@ -9,6 +9,10 @@ namespace simt {
 struct CoalescingResult {
     std::size_t activeLaneAccesses = 0;
     std::size_t transactions = 0;
+    std::size_t requestedBytes = 0;
+    std::size_t transferredBytes = 0;
+    std::size_t wastedBytes = 0;
+    std::vector<std::uint32_t> lineBases;
 };
 
 class MemoryCoalescer {

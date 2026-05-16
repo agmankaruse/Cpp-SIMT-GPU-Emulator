@@ -1,0 +1,7 @@
+.kernel bench_shared_bank_conflict
+MOV.LANEID r1
+SHL r2, r1, 7
+MOVI r3, 7
+ST.SHARED [r2 + 0], r3
+LD.SHARED r4, [r2 + 0]
+HALT

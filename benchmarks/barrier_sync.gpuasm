@@ -1,0 +1,14 @@
+.kernel bench_barrier_sync
+MOV.WARPID r1
+MOVI r2, 0
+SETP.EQ p0, r1, r2
+BRA.P p0, writer
+BAR.SYNC
+LD.SHARED r5, [r0 + 0]
+HALT
+writer:
+MOVI r3, 99
+ST.SHARED [r0 + 0], r3
+BAR.SYNC
+LD.SHARED r5, [r0 + 0]
+HALT

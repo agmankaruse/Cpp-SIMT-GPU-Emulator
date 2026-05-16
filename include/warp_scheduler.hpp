@@ -20,6 +20,7 @@ public:
 private:
     SchedulerPolicy policy_;
     std::size_t roundRobinCursor_ = 0;
+    int greedyWarp_ = -1;
 };
 
 } // namespace simt

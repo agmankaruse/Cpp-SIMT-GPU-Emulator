@@ -12,7 +12,17 @@ int WarpScheduler::select(const std::vector<int>& readyWarps,
         return -1;
     }
 
-    if (policy_ == SchedulerPolicy::OldestReady) {
+    if (policy_ == SchedulerPolicy::GreedyThenOldest && greedyWarp_ >= 0) {
+        for (int ready : readyWarps) {
+            if (ready == greedyWarp_) {
+                return greedyWarp_;
+            }
+        }
+    }
+
+    if (policy_ == SchedulerPolicy::OldestReady ||
+        policy_ == SchedulerPolicy::GreedyThenOldest ||
+        policy_ == SchedulerPolicy::TwoLevel) {
         int selected = readyWarps.front();
         std::uint64_t oldest = std::numeric_limits<std::uint64_t>::max();
         for (int warp : readyWarps) {
@@ -22,6 +32,7 @@ int WarpScheduler::select(const std::vector<int>& readyWarps,
                 selected = warp;
             }
         }
+        greedyWarp_ = selected;
         return selected;
     }
 
@@ -31,6 +42,7 @@ int WarpScheduler::select(const std::vector<int>& readyWarps,
             if (ready == candidate) {
                 roundRobinCursor_ = (static_cast<std::size_t>(candidate) + 1) %
                                     lastIssueCycles.size();
+                greedyWarp_ = candidate;
                 return candidate;
             }
         }

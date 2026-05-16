@@ -1,0 +1,6 @@
+.kernel bench_coalescing_contiguous
+MOV.GTID r1
+SHL r2, r1, 2
+LD.GLOBAL r3, [r2 + 0]
+ST.GLOBAL [r2 + 32768], r3
+HALT

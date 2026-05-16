@@ -1,0 +1,8 @@
+.kernel bench_latency_hiding_many_warps
+MOV.GTID r1
+SHL r2, r1, 2
+LD.GLOBAL r3, [r2 + 0]
+ADDI r4, r3, 1
+ADDI r5, r4, 1
+ST.GLOBAL [r2 + 131072], r5
+HALT

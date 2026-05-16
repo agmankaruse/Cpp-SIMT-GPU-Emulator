@@ -1,0 +1,10 @@
+.kernel bench_saxpy
+MOV.GTID r1
+SHL r2, r1, 2
+LD.GLOBAL r3, [r2 + 0]
+LD.GLOBAL r4, [r2 + 4096]
+MOVI r5, 4
+MUL r6, r3, r5
+ADD r7, r6, r4
+ST.GLOBAL [r2 + 4096], r7
+HALT

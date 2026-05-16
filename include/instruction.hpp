@@ -34,7 +34,15 @@ enum class Opcode {
     MovLaneId,
     MovWarpId,
     MovCtaId,
-    MovNtid
+    MovTid,
+    MovGtid,
+    MovNtid,
+    MovNcta,
+    VoteAll,
+    VoteAny,
+    Ballot,
+    ShflIdx,
+    BarSync
 };
 
 enum class UnitType {

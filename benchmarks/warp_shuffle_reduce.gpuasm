@@ -1,0 +1,10 @@
+.kernel bench_warp_shuffle_reduce
+MOV.LANEID r1
+MOVI r2, 0
+SETP.GE p0, r1, r2
+VOTE.ALL p1, p0
+BALLOT r3, p1
+MOVI r4, 0
+SHFL.IDX r5, r1, r4
+ADD r6, r5, r1
+HALT

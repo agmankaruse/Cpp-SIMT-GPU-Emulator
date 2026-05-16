@@ -8,6 +8,7 @@
 #include "trace.hpp"
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace simt {
@@ -17,7 +18,8 @@ public:
     explicit GPU(const GPUConfig& config = GPUConfig{});
 
     void loadProgram(const Program& program);
-    Stats run(bool traceEnabled = false, std::uint64_t maxCycles = 1'000'000);
+    Stats run(bool traceEnabled = false, std::uint64_t maxCycles = 1'000'000,
+              const std::string& timelinePath = {});
 
     GlobalMemory& globalMemory() { return globalMemory_; }
     const GlobalMemory& globalMemory() const { return globalMemory_; }
@@ -31,6 +33,7 @@ public:
 
 private:
     bool active() const;
+    void configureLaunchWarps();
 
     GPUConfig config_;
     Program program_;

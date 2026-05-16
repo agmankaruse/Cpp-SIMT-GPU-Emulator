@@ -5,9 +5,15 @@
 namespace simt {
 
 Warp::Warp(std::size_t laneCount, std::size_t registerCount,
-           std::size_t predicateCount, std::size_t globalWarpId, std::size_t ctaId)
+           std::size_t predicateCount, std::size_t globalWarpId, std::size_t ctaId,
+           std::size_t blockWarpId, std::size_t warpStartThread,
+           std::size_t blockDim, std::size_t gridDim)
     : globalWarpId_(globalWarpId),
       ctaId_(ctaId),
+      blockWarpId_(blockWarpId),
+      warpStartThread_(warpStartThread),
+      blockDim_(blockDim),
+      gridDim_(gridDim),
       lanes_(laneCount, Lane(registerCount, predicateCount)),
       activeMask_(laneCount, true),
       scoreboard_(registerCount) {}

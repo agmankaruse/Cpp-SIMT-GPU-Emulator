@@ -17,6 +17,8 @@ struct MemoryRequest {
     int dstReg = -1;
     std::uint64_t returnCycle = 0;
     std::size_t transactionCount = 0;
+    std::size_t requestedBytes = 0;
+    std::size_t transferredBytes = 0;
     std::vector<bool> activeMask;
     std::vector<std::uint32_t> addresses;
     std::vector<std::int32_t> storeValues;

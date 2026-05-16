@@ -1,0 +1,11 @@
+.kernel coalescing_good_vs_bad
+# First load: contiguous lanes, one cache-line transaction.
+# Second load: one cache line per lane, intentionally wasteful.
+MOV.LANEID r1
+SHL r2, r1, 2
+LD.GLOBAL r3, [r2 + 0]
+SHL r4, r1, 7
+LD.GLOBAL r5, [r4 + 16384]
+ADD r6, r3, r5
+ST.GLOBAL [r2 + 32768], r6
+HALT

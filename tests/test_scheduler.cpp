@@ -17,4 +17,9 @@ int main() {
     ages = {9, 3, 5};
     assert(oldest.select({0, 1, 2}, ages) == 1);
     assert(oldest.select({0, 2}, ages) == 2);
+
+    WarpScheduler greedy(SchedulerPolicy::GreedyThenOldest);
+    ages = {10, 1, 2};
+    assert(greedy.select({0, 1, 2}, ages) == 1);
+    assert(greedy.select({1, 2}, ages) == 1);
 }

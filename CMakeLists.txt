@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(simt_gpu_core
+    src/cache.cpp
     src/config.cpp
     src/gpu.cpp
     src/sm.cpp
@@ -20,6 +21,7 @@ add_library(simt_gpu_core
     src/global_memory.cpp
     src/memory_coalescer.cpp
     src/memory_request.cpp
+    src/occupancy.cpp
     src/warp_scheduler.cpp
     src/scoreboard.cpp
     src/divergence_stack.cpp
@@ -45,6 +47,15 @@ set(SIMT_TESTS
     test_memory_coalescing
     test_branch_divergence
     test_scheduler
+    test_config_loading
+    test_l1_cache
+    test_improved_coalescing
+    test_warp_primitives
+    test_barrier_sync
+    test_occupancy
+    test_kernel_launch
+    test_timeline_output
+    test_shared_memory_conflicts
 )
 
 foreach(test_name IN LISTS SIMT_TESTS)

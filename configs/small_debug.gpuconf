@@ -1,0 +1,20 @@
+# Tiny architecture for readable traces and quick tests.
+sms = 1
+warps_per_sm = 2
+lanes_per_warp = 8
+registers_per_lane = 32
+shared_memory_size = 8K
+global_memory_size = 128K
+alu_pipelines = 1
+sfu_pipelines = 1
+lsu_count = 1
+global_memory_latency = 30
+shared_memory_latency = 3
+max_outstanding_memory_requests = 4
+scheduler_policy = round_robin
+cache_size = 4K
+cache_line_size = 64
+l1_hit_latency = 3
+l1_miss_latency = 30
+grid = 1
+block = 16

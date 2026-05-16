@@ -9,6 +9,8 @@ out/
 *.pdb
 *.ilk
 *.log
+outputs/
+timeline_test.csv
 Testing/
 CMakeFiles/
 CMakeCache.txt

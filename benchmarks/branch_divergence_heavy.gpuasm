@@ -1,0 +1,14 @@
+.kernel bench_branch_divergence_heavy
+MOV.LANEID r1
+MOVI r2, 16
+SETP.LT p0, r1, r2
+BRA.P p0, low_half
+MOVI r3, 200
+SHL r4, r1, 2
+ST.GLOBAL [r4 + 65536], r3
+HALT
+low_half:
+MOVI r3, 100
+SHL r4, r1, 2
+ST.GLOBAL [r4 + 65536], r3
+HALT
