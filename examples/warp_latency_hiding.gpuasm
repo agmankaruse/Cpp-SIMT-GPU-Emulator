@@ -1,0 +1,18 @@
+.kernel warp_latency_hiding
+# Warp 0 takes a long global load while other warps keep issuing ALU work.
+MOV.WARPID r1
+MOVI r2, 0
+SETP.EQ p0, r1, r2
+BRA.P p0, memory_path
+MOVI r10, 1
+ADDI r10, r10, 1
+ADDI r10, r10, 1
+ADDI r10, r10, 1
+ADDI r10, r10, 1
+HALT
+memory_path:
+MOV.LANEID r3
+SHL r4, r3, 2
+LD.GLOBAL r5, [r4 + 0]
+ADDI r6, r5, 1
+HALT

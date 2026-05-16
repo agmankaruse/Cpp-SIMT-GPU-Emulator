@@ -1,0 +1,15 @@
+.kernel branch_divergence
+# Low-numbered lanes take a different path from high-numbered lanes.
+MOV.LANEID r1
+MOVI r2, 16
+SETP.LT p0, r1, r2
+BRA.P p0, low_half
+MOVI r3, 200
+SHL r4, r1, 2
+ST.GLOBAL [r4 + 12288], r3
+HALT
+low_half:
+MOVI r3, 100
+SHL r4, r1, 2
+ST.GLOBAL [r4 + 12288], r3
+HALT

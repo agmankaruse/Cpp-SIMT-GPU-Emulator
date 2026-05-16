@@ -1,0 +1,10 @@
+.kernel shared_memory_tile
+# Load global data into per-SM shared memory, then read it back.
+MOV.LANEID r1
+SHL r2, r1, 2
+LD.GLOBAL r3, [r2 + 0]
+ST.SHARED [r2 + 0], r3
+LD.SHARED r4, [r2 + 0]
+ADDI r5, r4, 1
+ST.GLOBAL [r2 + 49152], r5
+HALT

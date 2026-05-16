@@ -1,0 +1,13 @@
+.kernel vector_add
+# C[i] = A[i] + B[i], where i = warp_id * ntid + lane_id.
+MOV.LANEID r1
+MOV.WARPID r2
+MOV.NTID r3
+MUL r4, r2, r3
+ADD r5, r4, r1
+SHL r6, r5, 2
+LD.GLOBAL r7, [r6 + 0]
+LD.GLOBAL r8, [r6 + 4096]
+ADD r9, r7, r8
+ST.GLOBAL [r6 + 8192], r9
+HALT
