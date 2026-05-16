@@ -1,0 +1,21 @@
+# Default educational GPU architecture.
+sms = 2
+warps_per_sm = 8
+lanes_per_warp = 32
+registers_per_lane = 64
+shared_memory_size = 32K
+global_memory_size = 1M
+alu_pipelines = 2
+sfu_pipelines = 1
+lsu_count = 1
+global_memory_latency = 100
+shared_memory_latency = 4
+max_outstanding_memory_requests = 16
+scheduler_policy = round_robin
+cache_size = 16K
+cache_line_size = 128
+cache_associativity = 1
+l1_hit_latency = 4
+l1_miss_latency = 100
+grid = 2
+block = 256

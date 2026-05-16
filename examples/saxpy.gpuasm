@@ -1,10 +1,6 @@
 .kernel saxpy
 # Y[i] = 3 * X[i] + Y[i] using integer arithmetic.
-MOV.LANEID r1
-MOV.WARPID r2
-MOV.NTID r3
-MUL r4, r2, r3
-ADD r5, r4, r1
+MOV.GTID r5
 SHL r6, r5, 2
 LD.GLOBAL r7, [r6 + 0]
 LD.GLOBAL r8, [r6 + 4096]

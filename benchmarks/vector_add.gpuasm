@@ -1,0 +1,8 @@
+.kernel bench_vector_add
+MOV.GTID r1
+SHL r2, r1, 2
+LD.GLOBAL r3, [r2 + 0]
+LD.GLOBAL r4, [r2 + 4096]
+ADD r5, r3, r4
+ST.GLOBAL [r2 + 8192], r5
+HALT

@@ -1,6 +1,6 @@
 #include "memory_coalescer.hpp"
 
-#include <unordered_set>
+#include <algorithm>
 
 namespace simt {
 
@@ -8,7 +8,6 @@ MemoryCoalescer::MemoryCoalescer(std::size_t lineBytes) : lineBytes_(lineBytes) 
 
 CoalescingResult MemoryCoalescer::coalesce(const std::vector<std::uint32_t>& addresses,
                                            const std::vector<bool>& activeMask) const {
-    std::unordered_set<std::uint32_t> lineBases;
     CoalescingResult result;
     for (std::size_t lane = 0; lane < addresses.size() && lane < activeMask.size(); ++lane) {
         if (!activeMask[lane]) {
@@ -18,9 +17,18 @@ CoalescingResult MemoryCoalescer::coalesce(const std::vector<std::uint32_t>& add
         const auto lineBase = static_cast<std::uint32_t>(
             (addresses[lane] / static_cast<std::uint32_t>(lineBytes_)) *
             static_cast<std::uint32_t>(lineBytes_));
-        lineBases.insert(lineBase);
+        if (std::find(result.lineBases.begin(), result.lineBases.end(), lineBase) ==
+            result.lineBases.end()) {
+            result.lineBases.push_back(lineBase);
+        }
     }
-    result.transactions = lineBases.size();
+    std::sort(result.lineBases.begin(), result.lineBases.end());
+    result.transactions = result.lineBases.size();
+    result.requestedBytes = result.activeLaneAccesses * 4;
+    result.transferredBytes = result.transactions * lineBytes_;
+    result.wastedBytes = result.transferredBytes > result.requestedBytes
+                             ? result.transferredBytes - result.requestedBytes
+                             : 0;
     return result;
 }
 

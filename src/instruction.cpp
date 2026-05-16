@@ -31,8 +31,15 @@ bool Instruction::writesRegister() const {
     case Opcode::MovLaneId:
     case Opcode::MovWarpId:
     case Opcode::MovCtaId:
+    case Opcode::MovTid:
+    case Opcode::MovGtid:
     case Opcode::MovNtid:
+    case Opcode::MovNcta:
+    case Opcode::Ballot:
+    case Opcode::ShflIdx:
         return dst >= 0;
+    case Opcode::BarSync:
+        return false;
     default:
         return false;
     }
@@ -44,6 +51,8 @@ bool Instruction::writesPredicate() const {
     case Opcode::SetpNe:
     case Opcode::SetpLt:
     case Opcode::SetpGe:
+    case Opcode::VoteAll:
+    case Opcode::VoteAny:
         return predDst >= 0;
     default:
         return false;
@@ -68,6 +77,7 @@ UnitType Instruction::unitType() const {
     case Opcode::Halt:
     case Opcode::Bra:
     case Opcode::BraPred:
+    case Opcode::BarSync:
         return UnitType::None;
     default:
         return UnitType::IntAlu;
@@ -99,6 +109,8 @@ std::vector<int> Instruction::sourceRegisters() const {
         return {srcA, srcB, srcC};
     case Opcode::StGlobal:
     case Opcode::StShared:
+        return {srcA, srcB};
+    case Opcode::ShflIdx:
         return {srcA, srcB};
     default:
         return {};
@@ -161,8 +173,24 @@ std::string opcodeName(Opcode opcode) {
         return "MOV.WARPID";
     case Opcode::MovCtaId:
         return "MOV.CTAID";
+    case Opcode::MovTid:
+        return "MOV.TID";
+    case Opcode::MovGtid:
+        return "MOV.GTID";
     case Opcode::MovNtid:
         return "MOV.NTID";
+    case Opcode::MovNcta:
+        return "MOV.NCTA";
+    case Opcode::VoteAll:
+        return "VOTE.ALL";
+    case Opcode::VoteAny:
+        return "VOTE.ANY";
+    case Opcode::Ballot:
+        return "BALLOT";
+    case Opcode::ShflIdx:
+        return "SHFL.IDX";
+    case Opcode::BarSync:
+        return "BAR.SYNC";
     }
     throw std::runtime_error("unknown opcode");
 }

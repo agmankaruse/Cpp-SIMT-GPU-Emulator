@@ -1,6 +1,6 @@
 .kernel shared_memory_tile
 # Load global data into per-SM shared memory, then read it back.
-MOV.LANEID r1
+MOV.TID r1
 SHL r2, r1, 2
 LD.GLOBAL r3, [r2 + 0]
 ST.SHARED [r2 + 0], r3

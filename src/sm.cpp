@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <utility>
 
 namespace simt {
 namespace {
@@ -40,7 +41,9 @@ StreamingMultiprocessor::StreamingMultiprocessor(std::size_t id, const GPUConfig
       scheduler_(config.schedulerPolicy),
       intAlu_(config.intAluPipelinesPerSM, 1),
       sfu_(config.sfuPipelinesPerSM, 4),
-      lsu_(config.lsuPipelinesPerSM, 1) {
+      lsu_(config.lsuPipelinesPerSM, 1),
+      l1Cache_(config.cacheSizeBytes, config.cacheLineBytes, config.cacheAssociativity,
+               config.l1HitLatency, config.l1MissLatency) {
     warps_.reserve(config_.warpsPerSM);
     for (std::size_t warp = 0; warp < config_.warpsPerSM; ++warp) {
         const std::size_t globalWarpId = id_ * config_.warpsPerSM + warp;
@@ -51,6 +54,14 @@ StreamingMultiprocessor::StreamingMultiprocessor(std::size_t id, const GPUConfig
 
 void StreamingMultiprocessor::loadProgram(const Program* program) {
     program_ = program;
+}
+
+void StreamingMultiprocessor::setWarps(std::vector<Warp> warps) {
+    warps_ = std::move(warps);
+    pendingWrites_.clear();
+    memoryRequests_.clear();
+    barriers_.clear();
+    l1Cache_.reset();
 }
 
 bool StreamingMultiprocessor::active() const {
@@ -67,8 +78,8 @@ bool StreamingMultiprocessor::active() const {
 
 void StreamingMultiprocessor::tick(std::uint64_t cycle, GlobalMemory& globalMemory,
                                    Stats& stats, Trace* trace) {
-    completePendingWrites(cycle, stats);
-    completeMemoryRequests(cycle, globalMemory, stats);
+    completePendingWrites(cycle, stats, trace);
+    completeMemoryRequests(cycle, globalMemory, stats, trace);
 
     for (auto& warp : warps_) {
         if (!warp.done()) {
@@ -92,10 +103,26 @@ void StreamingMultiprocessor::tick(std::uint64_t cycle, GlobalMemory& globalMemo
             readyWarps.push_back(static_cast<int>(i));
         } else if (state == ReadyState::WaitingGlobalMemory) {
             ++stats.globalMemoryStallCycles;
+            if (trace != nullptr) {
+                trace->recordEvent(cycle, id_, warp.id(), nullptr, warp.pc(), "FETCH",
+                                   warp.activeMask(), "global memory");
+            }
+        } else if (state == ReadyState::WaitingBarrier) {
+            ++stats.barrierStallCycles;
+            if (trace != nullptr) {
+                trace->recordEvent(cycle, id_, warp.id(), nullptr, warp.pc(), "BARRIER_WAIT",
+                                   warp.activeMask(), "barrier");
+            }
         } else if (state == ReadyState::ScoreboardBlocked) {
             ++stats.scoreboardStallCycles;
+            if (trace != nullptr) {
+                trace->recordEvent(cycle, id_, warp.id(), nullptr, warp.pc(), "FETCH",
+                                   warp.activeMask(), "scoreboard");
+            }
         }
     }
+    ++stats.eligibleWarpSamples;
+    stats.eligibleWarpTotal += readyWarps.size();
 
     if (readyWarps.empty()) {
         if (hasLiveWarp || !pendingWrites_.empty() || !memoryRequests_.empty()) {
@@ -118,6 +145,9 @@ StreamingMultiprocessor::readiness(const Warp& warp, std::uint64_t cycle) const 
     }
     if (warp.waitingOnGlobalMemory()) {
         return ReadyState::WaitingGlobalMemory;
+    }
+    if (warp.waitingOnBarrier()) {
+        return ReadyState::WaitingBarrier;
     }
     if (warp.pc() >= program_->instructions.size()) {
         return ReadyState::Done;
@@ -148,15 +178,20 @@ void StreamingMultiprocessor::issue(std::uint64_t cycle, int warpIndex,
     }
 
     ++stats.instructionsIssued;
+    stats.recordSelectedWarp(warp.id());
     warp.setLastIssueCycle(cycle + 1);
 
-    if (handleBranch(cycle, warpIndex, inst, stats)) {
+    if (handleBranch(cycle, warpIndex, inst, stats, trace)) {
         ++stats.instructionsRetired;
         return;
     }
 
     const UnitType unit = inst.unitType();
     const std::uint64_t readyCycle = issueFunctionUnit(unit, cycle);
+    if (trace != nullptr && unit != UnitType::None) {
+        trace->recordEvent(cycle, id_, warp.id(), &inst, warp.pc(), "EXECUTE",
+                           warp.activeMask());
+    }
     std::vector<std::int32_t> regValues(warp.laneCount(), 0);
     std::vector<bool> predValues(warp.laneCount(), false);
 
@@ -205,8 +240,30 @@ void StreamingMultiprocessor::issue(std::uint64_t cycle, int warpIndex,
         queueRegisterWrite(readyCycle, warpIndex, inst.dst, warp.activeMask(), regValues);
         warp.advancePc();
         break;
+    case Opcode::MovTid:
+        for (std::size_t lane = 0; lane < warp.laneCount(); ++lane) {
+            regValues[lane] = static_cast<std::int32_t>(warp.threadId(lane));
+        }
+        warp.scoreboard().reserve(inst.dst);
+        queueRegisterWrite(readyCycle, warpIndex, inst.dst, warp.activeMask(), regValues);
+        warp.advancePc();
+        break;
+    case Opcode::MovGtid:
+        for (std::size_t lane = 0; lane < warp.laneCount(); ++lane) {
+            regValues[lane] = static_cast<std::int32_t>(warp.globalThreadId(lane));
+        }
+        warp.scoreboard().reserve(inst.dst);
+        queueRegisterWrite(readyCycle, warpIndex, inst.dst, warp.activeMask(), regValues);
+        warp.advancePc();
+        break;
     case Opcode::MovNtid:
-        std::fill(regValues.begin(), regValues.end(), static_cast<std::int32_t>(warp.laneCount()));
+        std::fill(regValues.begin(), regValues.end(), static_cast<std::int32_t>(warp.blockDim()));
+        warp.scoreboard().reserve(inst.dst);
+        queueRegisterWrite(readyCycle, warpIndex, inst.dst, warp.activeMask(), regValues);
+        warp.advancePc();
+        break;
+    case Opcode::MovNcta:
+        std::fill(regValues.begin(), regValues.end(), static_cast<std::int32_t>(warp.gridDim()));
         warp.scoreboard().reserve(inst.dst);
         queueRegisterWrite(readyCycle, warpIndex, inst.dst, warp.activeMask(), regValues);
         warp.advancePc();
@@ -299,13 +356,66 @@ void StreamingMultiprocessor::issue(std::uint64_t cycle, int warpIndex,
         queuePredicateWrite(readyCycle, warpIndex, inst.predDst, warp.activeMask(), predValues);
         warp.advancePc();
         break;
+    case Opcode::VoteAll:
+    case Opcode::VoteAny: {
+        bool anyVote = false;
+        bool allVote = true;
+        bool hasActive = false;
+        for (std::size_t lane = 0; lane < warp.laneCount(); ++lane) {
+            if (!activeForLane(lane)) {
+                continue;
+            }
+            hasActive = true;
+            const bool vote = warp.lane(lane).pred(static_cast<std::size_t>(inst.pred));
+            anyVote = anyVote || vote;
+            allVote = allVote && vote;
+        }
+        const bool result = inst.opcode == Opcode::VoteAll ? (hasActive && allVote) : anyVote;
+        std::fill(predValues.begin(), predValues.end(), result);
+        queuePredicateWrite(readyCycle, warpIndex, inst.predDst, warp.activeMask(), predValues);
+        warp.advancePc();
+        break;
+    }
+    case Opcode::Ballot: {
+        std::int32_t ballot = 0;
+        for (std::size_t lane = 0; lane < warp.laneCount() && lane < 31; ++lane) {
+            if (activeForLane(lane) &&
+                warp.lane(lane).pred(static_cast<std::size_t>(inst.pred))) {
+                ballot |= (1 << lane);
+            }
+        }
+        std::fill(regValues.begin(), regValues.end(), ballot);
+        warp.scoreboard().reserve(inst.dst);
+        queueRegisterWrite(readyCycle, warpIndex, inst.dst, warp.activeMask(), regValues);
+        warp.advancePc();
+        break;
+    }
+    case Opcode::ShflIdx:
+        for (std::size_t lane = 0; lane < warp.laneCount(); ++lane) {
+            if (!activeForLane(lane)) {
+                continue;
+            }
+            const auto sourceLane =
+                warp.lane(lane).reg(static_cast<std::size_t>(inst.srcB));
+            if (sourceLane >= 0 && static_cast<std::size_t>(sourceLane) < warp.laneCount()) {
+                regValues[lane] = warp.lane(static_cast<std::size_t>(sourceLane))
+                                      .reg(static_cast<std::size_t>(inst.srcA));
+            }
+        }
+        warp.scoreboard().reserve(inst.dst);
+        queueRegisterWrite(readyCycle, warpIndex, inst.dst, warp.activeMask(), regValues);
+        warp.advancePc();
+        break;
     case Opcode::LdGlobal:
     case Opcode::StGlobal:
-        issueGlobalMemory(cycle, warpIndex, inst, stats);
+        issueGlobalMemory(cycle, warpIndex, inst, stats, trace);
         break;
     case Opcode::LdShared:
     case Opcode::StShared:
         issueSharedMemory(cycle, warpIndex, inst, stats);
+        break;
+    case Opcode::BarSync:
+        issueBarrier(cycle, warpIndex, inst, stats, trace);
         break;
     case Opcode::Halt:
     case Opcode::Bra:
@@ -314,7 +424,8 @@ void StreamingMultiprocessor::issue(std::uint64_t cycle, int warpIndex,
     }
 }
 
-void StreamingMultiprocessor::completePendingWrites(std::uint64_t cycle, Stats& stats) {
+void StreamingMultiprocessor::completePendingWrites(std::uint64_t cycle, Stats& stats,
+                                                    Trace* trace) {
     auto it = pendingWrites_.begin();
     while (it != pendingWrites_.end()) {
         if (it->readyCycle > cycle) {
@@ -340,6 +451,10 @@ void StreamingMultiprocessor::completePendingWrites(std::uint64_t cycle, Stats& 
             }
         }
 
+        if (trace != nullptr) {
+            trace->recordEvent(cycle, id_, warp.id(), nullptr, warp.pc(), "WRITEBACK",
+                               it->activeMask);
+        }
         ++stats.instructionsRetired;
         it = pendingWrites_.erase(it);
     }
@@ -347,7 +462,7 @@ void StreamingMultiprocessor::completePendingWrites(std::uint64_t cycle, Stats& 
 
 void StreamingMultiprocessor::completeMemoryRequests(std::uint64_t cycle,
                                                      GlobalMemory& globalMemory,
-                                                     Stats& stats) {
+                                                     Stats& stats, Trace* trace) {
     auto it = memoryRequests_.begin();
     while (it != memoryRequests_.end()) {
         if (it->returnCycle > cycle) {
@@ -375,6 +490,10 @@ void StreamingMultiprocessor::completeMemoryRequests(std::uint64_t cycle,
             }
         }
 
+        if (trace != nullptr) {
+            trace->recordEvent(cycle, id_, warp.id(), nullptr, warp.pc(), "MEMORY_RETURN",
+                               it->activeMask);
+        }
         ++stats.instructionsRetired;
         it = memoryRequests_.erase(it);
     }
@@ -426,22 +545,46 @@ std::vector<std::int32_t> StreamingMultiprocessor::laneRegisterValues(const Warp
 }
 
 void StreamingMultiprocessor::issueGlobalMemory(std::uint64_t cycle, int warpIndex,
-                                                const Instruction& inst, Stats& stats) {
+                                                const Instruction& inst, Stats& stats,
+                                                Trace* trace) {
     Warp& warp = warps_.at(static_cast<std::size_t>(warpIndex));
     const auto addresses = laneAddresses(warp, inst.srcA, inst.imm);
     const auto coalesced = coalescer_.coalesce(addresses, warp.activeMask());
 
     stats.memoryRequests += 1;
+    stats.warpMemoryInstructions += 1;
     stats.coalescedTransactions += coalesced.transactions;
     stats.memoryLaneAccesses += coalesced.activeLaneAccesses;
+    stats.requestedBytes += coalesced.requestedBytes;
+    stats.transferredBytes += coalesced.transferredBytes;
+    stats.wastedBytes += coalesced.wastedBytes;
+
+    std::uint64_t memoryLatency = 0;
+    for (std::uint32_t lineBase : coalesced.lineBases) {
+        const CacheAccessResult access = l1Cache_.access(lineBase);
+        memoryLatency = std::max(memoryLatency, access.latency);
+        if (access.hit) {
+            ++stats.l1Hits;
+        } else {
+            ++stats.l1Misses;
+            if (access.latency > config_.l1HitLatency) {
+                stats.cacheMissStallCycles += access.latency - config_.l1HitLatency;
+            }
+        }
+    }
+    if (memoryLatency == 0) {
+        memoryLatency = config_.l1HitLatency;
+    }
 
     MemoryRequest request;
     request.space = MemorySpace::Global;
     request.isLoad = inst.opcode == Opcode::LdGlobal;
     request.warpIndex = warpIndex;
     request.dstReg = inst.dst;
-    request.returnCycle = cycle + config_.globalMemoryLatency;
+    request.returnCycle = cycle + memoryLatency;
     request.transactionCount = coalesced.transactions;
+    request.requestedBytes = coalesced.requestedBytes;
+    request.transferredBytes = coalesced.transferredBytes;
     request.activeMask = warp.activeMask();
     request.addresses = addresses;
 
@@ -453,6 +596,10 @@ void StreamingMultiprocessor::issueGlobalMemory(std::uint64_t cycle, int warpInd
     }
 
     memoryRequests_.push_back(request);
+    if (trace != nullptr) {
+        trace->recordEvent(cycle, id_, warp.id(), &inst, warp.pc(), "MEMORY_REQUEST",
+                           warp.activeMask());
+    }
     warp.advancePc();
 }
 
@@ -460,8 +607,16 @@ void StreamingMultiprocessor::issueSharedMemory(std::uint64_t cycle, int warpInd
                                                 const Instruction& inst, Stats& stats) {
     Warp& warp = warps_.at(static_cast<std::size_t>(warpIndex));
     const auto addresses = laneAddresses(warp, inst.srcA, inst.imm);
-    const auto conflicts = sharedMemory_.bankConflicts(addresses, warp.activeMask());
+    const auto accessInfo =
+        sharedMemory_.analyzeAccess(addresses, warp.activeMask(), inst.opcode == Opcode::LdShared);
+    const auto conflicts = accessInfo.conflicts;
+    stats.sharedMemoryAccesses += accessInfo.activeAccesses;
     stats.sharedMemoryBankConflicts += conflicts;
+    stats.sharedMemoryBankConflictEvents += accessInfo.conflictEvents;
+    stats.sharedMemoryMaxConflictDegree =
+        std::max(stats.sharedMemoryMaxConflictDegree, accessInfo.maxConflictDegree);
+    stats.sharedMemoryConflictDegreeTotal +=
+        static_cast<std::uint64_t>(accessInfo.averageConflictDegree * accessInfo.activeAccesses);
 
     const std::uint64_t readyCycle = cycle + config_.sharedMemoryLatency + conflicts;
 
@@ -486,13 +641,71 @@ void StreamingMultiprocessor::issueSharedMemory(std::uint64_t cycle, int warpInd
     warp.advancePc();
 }
 
+void StreamingMultiprocessor::issueBarrier(std::uint64_t cycle, int warpIndex,
+                                           const Instruction& inst, Stats& stats,
+                                           Trace* trace) {
+    Warp& warp = warps_.at(static_cast<std::size_t>(warpIndex));
+    BarrierState& barrier = barriers_[warp.ctaId()];
+    if (barrier.expectedWarps == 0) {
+        barrier.expectedWarps = activeWarpCountForCTA(warp.ctaId());
+    }
+    barrier.waitingWarps.insert(warpIndex);
+    warp.setWaitingOnBarrier(true);
+    warp.advancePc();
+    ++stats.barrierCount;
+    if (trace != nullptr) {
+        trace->recordEvent(cycle, id_, warp.id(), &inst, warp.pc(), "BARRIER_WAIT",
+                           warp.activeMask());
+    }
+    releaseBarrierIfReady(cycle, warp.ctaId(), stats, trace);
+}
+
+void StreamingMultiprocessor::releaseBarrierIfReady(std::uint64_t cycle, std::size_t ctaId,
+                                                    Stats& stats, Trace* trace) {
+    auto it = barriers_.find(ctaId);
+    if (it == barriers_.end()) {
+        return;
+    }
+    BarrierState& barrier = it->second;
+    if (barrier.expectedWarps == 0 || barrier.waitingWarps.size() < barrier.expectedWarps) {
+        return;
+    }
+
+    const std::size_t releasedWarps = barrier.waitingWarps.size();
+    for (int warpIndex : barrier.waitingWarps) {
+        Warp& warp = warps_.at(static_cast<std::size_t>(warpIndex));
+        warp.setWaitingOnBarrier(false);
+        if (trace != nullptr) {
+            trace->recordEvent(cycle, id_, warp.id(), nullptr, warp.pc(), "BARRIER_RELEASE",
+                               warp.activeMask());
+        }
+    }
+    stats.instructionsRetired += releasedWarps;
+    barriers_.erase(it);
+}
+
+std::size_t StreamingMultiprocessor::activeWarpCountForCTA(std::size_t ctaId) const {
+    std::size_t count = 0;
+    for (const Warp& warp : warps_) {
+        if (warp.ctaId() == ctaId && !warp.done()) {
+            ++count;
+        }
+    }
+    return count == 0 ? 1 : count;
+}
+
 bool StreamingMultiprocessor::handleBranch(std::uint64_t cycle, int warpIndex,
-                                           const Instruction& inst, Stats& stats) {
-    (void)cycle;
+                                           const Instruction& inst, Stats& stats,
+                                           Trace* trace) {
     Warp& warp = warps_.at(static_cast<std::size_t>(warpIndex));
 
     if (inst.opcode == Opcode::Halt) {
+        const bool hadDeferredPath = !warp.divergenceStack().empty();
         warp.haltOrDeferToDivergenceStack(stats);
+        if (trace != nullptr) {
+            trace->recordEvent(cycle, id_, warp.id(), &inst, warp.pc(),
+                               hadDeferredPath ? "RECONVERGE" : "HALT", warp.activeMask());
+        }
         return true;
     }
 
@@ -505,6 +718,10 @@ bool StreamingMultiprocessor::handleBranch(std::uint64_t cycle, int warpIndex,
                 entry.completedMask = warp.activeMask();
                 warp.setActiveMask(entry.deferredMask);
                 warp.setPc(entry.deferredPc);
+                if (trace != nullptr) {
+                    trace->recordEvent(cycle, id_, warp.id(), &inst, warp.pc(), "RECONVERGE",
+                                       warp.activeMask());
+                }
                 return true;
             }
         }
@@ -541,6 +758,10 @@ bool StreamingMultiprocessor::handleBranch(std::uint64_t cycle, int warpIndex,
         warp.setActiveMask(takeMask);
         warp.setPc(inst.target);
         ++stats.branchDivergenceEvents;
+        if (trace != nullptr) {
+            trace->recordEvent(cycle, id_, warp.id(), &inst, warp.pc(), "DIVERGE",
+                               warp.activeMask());
+        }
     } else if (anyTake) {
         warp.setActiveMask(takeMask);
         warp.setPc(inst.target);

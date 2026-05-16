@@ -1,0 +1,7 @@
+.kernel scheduler_latency_hiding
+MOV.GTID r1
+SHL r2, r1, 2
+LD.GLOBAL r3, [r2 + 0]
+ADDI r4, r3, 10
+ST.GLOBAL [r2 + 196608], r4
+HALT

@@ -1,0 +1,20 @@
+# More resident warps and CTAs to highlight latency hiding.
+sms = 4
+warps_per_sm = 16
+lanes_per_warp = 32
+registers_per_lane = 96
+shared_memory_size = 64K
+global_memory_size = 4M
+alu_pipelines = 4
+sfu_pipelines = 2
+lsu_count = 2
+global_memory_latency = 120
+shared_memory_latency = 4
+max_outstanding_memory_requests = 32
+scheduler_policy = greedy_then_oldest
+cache_size = 32K
+cache_line_size = 128
+l1_hit_latency = 4
+l1_miss_latency = 120
+grid = 8
+block = 256

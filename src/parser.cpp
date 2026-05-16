@@ -269,9 +269,32 @@ Instruction Parser::parseInstruction(const std::string& line) {
     case Opcode::MovLaneId:
     case Opcode::MovWarpId:
     case Opcode::MovCtaId:
+    case Opcode::MovTid:
+    case Opcode::MovGtid:
     case Opcode::MovNtid:
+    case Opcode::MovNcta:
         requireCount(1);
         inst.dst = parseRegister(operands[0]);
+        break;
+    case Opcode::VoteAll:
+    case Opcode::VoteAny:
+        requireCount(2);
+        inst.predDst = parsePredicate(operands[0]);
+        inst.pred = parsePredicate(operands[1]);
+        break;
+    case Opcode::Ballot:
+        requireCount(2);
+        inst.dst = parseRegister(operands[0]);
+        inst.pred = parsePredicate(operands[1]);
+        break;
+    case Opcode::ShflIdx:
+        requireCount(3);
+        inst.dst = parseRegister(operands[0]);
+        inst.srcA = parseRegister(operands[1]);
+        inst.srcB = parseRegister(operands[2]);
+        break;
+    case Opcode::BarSync:
+        requireCount(0);
         break;
     }
 
