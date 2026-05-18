@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <utility>
 
@@ -91,6 +92,94 @@ void GPU::configureLaunchWarps() {
         }
         sms_[sm].setWarps(std::move(smWarps[sm]));
     }
+}
+
+std::string GPU::dumpSMState() const {
+    std::ostringstream out;
+    out << "SM state\n";
+    for (const auto& sm : sms_) {
+        out << "  SM" << sm.id_ << " warps=" << sm.warps_.size()
+            << " pending_writes=" << sm.pendingWrites_.size()
+            << " memory_requests=" << sm.memoryRequests_.size()
+            << " barriers=" << sm.barriers_.size() << '\n';
+    }
+    return out.str();
+}
+
+std::string GPU::dumpWarpState() const {
+    std::ostringstream out;
+    out << "Warp state\n";
+    for (const auto& sm : sms_) {
+        for (const auto& warp : sm.warps_) {
+            out << "  SM" << sm.id_ << " warp=" << warp.id()
+                << " cta=" << warp.ctaId()
+                << " pc=" << warp.pc()
+                << " halted=" << warp.halted()
+                << " global_wait=" << warp.waitingOnGlobalMemory()
+                << " barrier_wait=" << warp.waitingOnBarrier()
+                << " mask=" << maskToString(warp.activeMask()) << '\n';
+        }
+    }
+    return out.str();
+}
+
+std::string GPU::dumpScoreboard() const {
+    std::ostringstream out;
+    out << "Scoreboard state\n";
+    for (const auto& sm : sms_) {
+        for (const auto& warp : sm.warps_) {
+            out << "  SM" << sm.id_ << " warp=" << warp.id() << " pending";
+            for (const auto reg : warp.scoreboard().pendingRegisters()) {
+                out << " r" << reg;
+            }
+            out << '\n';
+        }
+    }
+    return out.str();
+}
+
+std::string GPU::dumpDivergenceStack() const {
+    std::ostringstream out;
+    out << "Divergence stack state\n";
+    for (const auto& sm : sms_) {
+        for (const auto& warp : sm.warps_) {
+            out << "  SM" << sm.id_ << " warp=" << warp.id()
+                << " depth=" << warp.divergenceStack().size() << '\n';
+        }
+    }
+    return out.str();
+}
+
+std::string GPU::dumpMemoryQueue() const {
+    std::ostringstream out;
+    out << "Memory queue state\n";
+    for (const auto& sm : sms_) {
+        for (const auto& request : sm.memoryRequests_) {
+            out << "  SM" << sm.id_ << " warp_index=" << request.warpIndex
+                << " type=" << (request.isLoad ? "load" : "store")
+                << " return_cycle=" << request.returnCycle
+                << " transactions=" << request.transactionCount << '\n';
+        }
+    }
+    return out.str();
+}
+
+std::string GPU::dumpSharedMemorySummary() const {
+    std::ostringstream out;
+    out << "Shared memory summary\n";
+    for (const auto& sm : sms_) {
+        out << "  SM" << sm.id_ << " bytes=" << sm.sharedMemory_.size() << '\n';
+    }
+    return out.str();
+}
+
+std::string GPU::dumpSchedulerState() const {
+    std::ostringstream out;
+    out << "Scheduler state policy=" << toString(config_.schedulerPolicy) << '\n';
+    for (const auto& sm : sms_) {
+        out << "  SM" << sm.id_ << " active=" << sm.active() << '\n';
+    }
+    return out.str();
 }
 
 } // namespace simt

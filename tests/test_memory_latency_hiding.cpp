@@ -11,6 +11,7 @@ int main() {
     cfg.warpsPerSM = 2;
     cfg.lanesPerWarp = 4;
     cfg.globalMemoryLatency = 12;
+    cfg.l1MissLatency = 12;
 
     const Program program = Parser::parseText(R"(
 .kernel latency_hiding

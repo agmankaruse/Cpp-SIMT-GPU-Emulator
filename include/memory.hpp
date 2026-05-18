@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 namespace simt {
@@ -19,6 +20,8 @@ public:
 
     std::int32_t read32(std::uint32_t address) const;
     void write32(std::uint32_t address, std::int32_t value);
+
+    std::vector<std::pair<std::uint32_t, std::int32_t>> words() const;
 
 private:
     std::vector<std::uint8_t> bytes_;
