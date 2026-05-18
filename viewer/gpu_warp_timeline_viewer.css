@@ -1,0 +1,105 @@
+:root {
+  font-family: Inter, Segoe UI, Arial, sans-serif;
+  --bg: #f8faf9;
+  --fg: #17201c;
+  --line: #d8e1dc;
+  --muted: #62716a;
+  --issue: #d9ecff;
+  --memory: #ffe6bd;
+  --stall: #ffe0e0;
+  --diverge: #eadcff;
+  --barrier: #d7f3e2;
+  --halt: #e4e7eb;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+header {
+  padding: 20px 24px 12px;
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+
+h1 {
+  margin: 0 0 14px;
+  font-size: 22px;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+input,
+select {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 10px;
+  background: #fff;
+  color: var(--fg);
+}
+
+main {
+  padding: 16px 24px 24px;
+}
+
+#summary {
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.timeline {
+  overflow: auto;
+  border: 1px solid var(--line);
+  background: #fff;
+  max-height: calc(100vh - 150px);
+}
+
+table {
+  border-collapse: collapse;
+  font-size: 12px;
+  min-width: 100%;
+}
+
+th,
+td {
+  border: 1px solid var(--line);
+  padding: 6px 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+th:first-child,
+td:first-child {
+  position: sticky;
+  left: 0;
+  background: #fff;
+  text-align: left;
+  z-index: 1;
+}
+
+.event {
+  display: inline-block;
+  min-width: 58px;
+  padding: 3px 6px;
+  border-radius: 4px;
+}
+
+.ISSUE,
+.EXECUTE,
+.WRITEBACK { background: var(--issue); }
+.MEMORY_REQUEST,
+.MEMORY_RETURN { background: var(--memory); }
+.FETCH,
+.STALL { background: var(--stall); }
+.DIVERGE,
+.RECONVERGE { background: var(--diverge); }
+.BARRIER_WAIT,
+.BARRIER_RELEASE { background: var(--barrier); }
+.HALT { background: var(--halt); }

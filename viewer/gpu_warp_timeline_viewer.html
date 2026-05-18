@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GPU Warp Timeline Viewer</title>
+  <link rel="stylesheet" href="gpu_warp_timeline_viewer.css">
+</head>
+<body>
+  <header>
+    <h1>GPU Warp Timeline</h1>
+    <div class="controls">
+      <input id="csvFile" type="file" accept=".csv,text/csv">
+      <input id="smFilter" type="search" placeholder="SM">
+      <input id="warpFilter" type="search" placeholder="Warp">
+      <select id="eventFilter"><option value="">All events</option></select>
+      <input id="stallFilter" type="search" placeholder="Stall reason">
+    </div>
+  </header>
+  <main>
+    <div id="summary"></div>
+    <div id="timeline" class="timeline"></div>
+  </main>
+  <script src="gpu_warp_timeline_viewer.js"></script>
+</body>
+</html>
