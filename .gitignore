@@ -13,7 +13,6 @@ __pycache__/
 *.pdb
 *.ilk
 *.log
-outputs/
 timeline_test.csv
 Testing/
 CMakeFiles/

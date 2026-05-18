@@ -1,0 +1,4 @@
+scheduler,status,cycles,IPC,issue_efficiency,scheduler_idle_cycles,average_eligible_warps,memory_stall_cycles
+round_robin,PASS,232,0.414,see stats,366,see stats,see stats
+greedy_then_oldest,PASS,225,0.427,see stats,352,see stats,see stats
+oldest_ready,PASS,232,0.414,see stats,366,see stats,see stats

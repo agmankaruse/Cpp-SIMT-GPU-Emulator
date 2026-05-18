@@ -1,0 +1,1 @@
+random_gpu_diff passed=20 failed=0 count=20

@@ -1,0 +1,10 @@
+Grid / CTAs
+   |
+   v
+SMs -> warp scheduler -> scoreboard -> INT / SFU / LSU
+ |          |                |              |
+ |          v                v              v
+ |       warps          active masks     memory queue
+ |          |                               |
+ v          v                               v
+shared memory banks                  L1 cache / coalescer / global memory

@@ -1,0 +1,1 @@
+PASS diff kernel=vector_add cycles=332 emulator_instructions=112 reference_instructions=3584

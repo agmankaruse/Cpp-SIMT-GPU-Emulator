@@ -1,0 +1,5 @@
+PASS round_robin cycles=232 ipc=0.414
+PASS greedy_then_oldest cycles=225 ipc=0.427
+PASS oldest_ready cycles=232 ipc=0.414
+wrote C:\Users\amank\OneDrive\Desktop\ProfessionalWork\Projects\Cpp-SIMT-GPU-Emulator\outputs\scheduler_comparison.csv
+wrote C:\Users\amank\OneDrive\Desktop\ProfessionalWork\Projects\Cpp-SIMT-GPU-Emulator\outputs\scheduler_comparison_report.txt

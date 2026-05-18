@@ -1,0 +1,3 @@
+round_robin: cycles=232 IPC=0.414
+greedy_then_oldest: cycles=225 IPC=0.427
+oldest_ready: cycles=232 IPC=0.414

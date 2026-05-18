@@ -1,0 +1,7 @@
+BRA.P evaluates predicate per lane
+        |
+        +-- all same path -> update PC and continue
+        |
+        +-- mixed paths --> push fallthrough mask/PC
+                          execute taken mask
+                          HALT/BRA/reconverge restores deferred mask

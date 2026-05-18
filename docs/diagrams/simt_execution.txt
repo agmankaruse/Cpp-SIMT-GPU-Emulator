@@ -1,0 +1,13 @@
+One warp instruction
+        |
+        v
+Active mask selects participating lanes
+        |
+        v
+Each active lane reads its own registers
+        |
+        v
+Shared opcode executes across lanes
+        |
+        v
+Per-lane register or memory results are written back

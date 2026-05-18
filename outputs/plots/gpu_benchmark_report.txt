@@ -1,0 +1,13 @@
+GPU benchmark summary
+
+barrier_sync: cycles=58 IPC=1.966 coalescing=100.000 divergence=0
+branch_divergence_heavy: cycles=149 IPC=1.289 coalescing=50.000 divergence=16
+latency_hiding_many_warps: cycles=240 IPC=0.467 coalescing=100.000 divergence=0
+memory_coalescing_contiguous: cycles=224 IPC=0.357 coalescing=100.000 divergence=0
+memory_coalescing_strided: cycles=224 IPC=0.357 coalescing=3.125 divergence=0
+saxpy: cycles=256 IPC=0.562 coalescing=100.000 divergence=0
+scheduler_latency_hiding: cycles=232 IPC=0.414 coalescing=100.000 divergence=0
+shared_memory_bank_conflict: cycles=75 IPC=1.280 coalescing=100.000 divergence=0
+shared_memory_no_conflict: cycles=48 IPC=2.000 coalescing=100.000 divergence=0
+vector_add: cycles=332 IPC=0.337 coalescing=100.000 divergence=0
+warp_shuffle_reduce: cycles=72 IPC=2.000 coalescing=100.000 divergence=0

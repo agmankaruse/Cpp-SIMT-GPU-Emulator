@@ -1,0 +1,33 @@
+
+=== SIMT GPU Statistics ===
+Total cycles: 332
+Instructions issued: 112
+Instructions retired: 112
+IPC: 0.337
+Warp occupancy: 100.000%
+Number of memory requests: 48
+Number of coalesced transactions: 48
+Requested bytes: 6144
+Transferred bytes: 6144
+Wasted bytes: 0
+Coalescing efficiency: 100.000%
+Transactions per warp memory instruction: 1.000
+L1 hits: 0
+L1 misses: 48
+L1 hit rate: 0.000%
+Cache miss stalls: 4608
+Global memory stalls: 3168
+Shared memory bank conflicts: 0
+Shared memory accesses: 0
+Shared memory bank conflict events: 0
+Shared memory max conflict degree: 0
+Shared memory average conflict degree: 1.000
+Branch divergence events: 0
+Branch reconvergence events: 0
+Barrier count: 0
+Barrier stall cycles: 0
+Scheduler idle cycles: 550
+Scoreboard stall cycles: 0
+Issue efficiency: 2.108%
+Average eligible warps per cycle: 0.928
+Selected warp distribution: W0=7 W1=7 W2=7 W3=7 W4=7 W5=7 W6=7 W7=7 W8=7 W9=7 W10=7 W11=7 W12=7 W13=7 W14=7 W15=7
