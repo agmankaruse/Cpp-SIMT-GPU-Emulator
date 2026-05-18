@@ -115,11 +115,6 @@ This is an educational architecture emulator, not a CUDA runtime or binary-compa
 - Add performance regression thresholds
 - Model additional cache policies and scheduler heuristics
 
-## Resume / Interview Talking Points
-
-- Built a C++17 SIMT GPU emulator modeling multi-SM execution, 32-lane warps, scoreboarding, branch divergence/reconvergence, memory coalescing, shared memory bank conflicts, and latency hiding.
-- Developed benchmark, visualization, and verification tooling for analyzing warp scheduling, occupancy, memory behavior, and SIMT execution efficiency.
-
 ## What I Learned
 
 This project reinforced SIMT execution, warp scheduling, memory coalescing, branch divergence and reconvergence, shared memory bank conflicts, occupancy limits, and how GPUs hide memory latency with many eligible warps.
