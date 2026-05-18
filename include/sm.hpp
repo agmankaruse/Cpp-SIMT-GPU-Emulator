@@ -20,6 +20,8 @@
 
 namespace simt {
 
+class InvariantChecker;
+
 class StreamingMultiprocessor {
 public:
     StreamingMultiprocessor(std::size_t id, const GPUConfig& config);
@@ -34,8 +36,12 @@ public:
     const Warp& warp(std::size_t index) const { return warps_.at(index); }
     std::size_t warpCount() const { return warps_.size(); }
     SharedMemory& sharedMemory() { return sharedMemory_; }
+    const SharedMemory& sharedMemory() const { return sharedMemory_; }
 
 private:
+    friend class GPU;
+    friend class InvariantChecker;
+
     struct PendingWrite {
         enum class Kind {
             Register,

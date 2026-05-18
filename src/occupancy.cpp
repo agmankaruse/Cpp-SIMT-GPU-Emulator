@@ -6,7 +6,7 @@
 namespace simt {
 namespace {
 
-void scanInstructionRegister(const Instruction& inst, int reg, int& maxReg) {
+void scanInstructionRegister(int reg, int& maxReg) {
     if (reg >= 0) {
         maxReg = std::max(maxReg, reg);
     }
@@ -16,21 +16,24 @@ void scanInstructionRegister(const Instruction& inst, int reg, int& maxReg) {
 
 void OccupancyReport::print(std::ostream& os) const {
     os << "\n=== Occupancy Report ===\n";
-    os << "Registers per thread: " << registersPerThread << '\n';
-    os << "Shared memory per CTA: " << sharedMemoryPerCTA << " bytes\n";
-    os << "Warps per CTA: " << warpsPerCTA << '\n';
-    os << "Theoretical active warps per SM: " << theoreticalActiveWarpsPerSM << '\n';
-    os << "Occupancy: " << occupancyPercent << "%\n";
-    os << "Limiting factor: " << limitingFactor << '\n';
+    os << "Active CTAs per SM: " << activeCTAsPerSM << '\n';
+    os << "Active warps per SM: " << activeWarpsPerSM << '\n';
+    os << "Occupancy percentage: " << occupancyPercent << "%\n";
+    os << "Register pressure: " << registerPressurePercent << "% (" << registersPerThread
+       << " registers/thread)\n";
+    os << "Shared memory pressure: " << sharedMemoryPressurePercent << "% ("
+       << sharedMemoryPerCTA << " bytes/CTA)\n";
+    os << "Limiting resource: " << limitingFactor << '\n';
+    os << "Suggested optimization: " << suggestedOptimization << '\n';
 }
 
 OccupancyReport calculateOccupancy(const GPUConfig& config, const Program& program) {
     int maxReg = 0;
     for (const Instruction& inst : program.instructions) {
-        scanInstructionRegister(inst, inst.dst, maxReg);
-        scanInstructionRegister(inst, inst.srcA, maxReg);
-        scanInstructionRegister(inst, inst.srcB, maxReg);
-        scanInstructionRegister(inst, inst.srcC, maxReg);
+        scanInstructionRegister(inst.dst, maxReg);
+        scanInstructionRegister(inst.srcA, maxReg);
+        scanInstructionRegister(inst.srcB, maxReg);
+        scanInstructionRegister(inst.srcC, maxReg);
     }
 
     OccupancyReport report;
@@ -51,19 +54,34 @@ OccupancyReport calculateOccupancy(const GPUConfig& config, const Program& progr
     const std::size_t byShared = ctasByShared * report.warpsPerCTA;
 
     report.theoreticalActiveWarpsPerSM = std::min({byWarpSlots, byRegisters, byShared});
+    report.activeWarpsPerSM = report.theoreticalActiveWarpsPerSM;
+    report.activeCTAsPerSM = report.warpsPerCTA == 0 ? 0 : report.activeWarpsPerSM / report.warpsPerCTA;
     if (config.warpsPerSM != 0) {
         report.occupancyPercent =
             100.0 * static_cast<double>(report.theoreticalActiveWarpsPerSM) /
             static_cast<double>(config.warpsPerSM);
     }
+    if (config.registerFileEntriesPerSM != 0) {
+        report.registerPressurePercent =
+            100.0 * static_cast<double>(regsPerWarp * report.activeWarpsPerSM) /
+            static_cast<double>(config.registerFileEntriesPerSM);
+    }
+    if (config.sharedMemoryBytesPerSM != 0) {
+        report.sharedMemoryPressurePercent =
+            100.0 * static_cast<double>(report.sharedMemoryPerCTA * std::max<std::size_t>(1, report.activeCTAsPerSM)) /
+            static_cast<double>(config.sharedMemoryBytesPerSM);
+    }
 
     if (report.theoreticalActiveWarpsPerSM == byRegisters && byRegisters <= byShared &&
         byRegisters <= byWarpSlots) {
         report.limitingFactor = "registers";
+        report.suggestedOptimization = "Reduce live registers per thread or use smaller blocks.";
     } else if (report.theoreticalActiveWarpsPerSM == byShared && byShared <= byWarpSlots) {
         report.limitingFactor = "shared memory";
+        report.suggestedOptimization = "Reduce shared memory per CTA or split the tile.";
     } else {
         report.limitingFactor = "warp slots";
+        report.suggestedOptimization = "Increase independent work per warp or tune block size.";
     }
     return report;
 }

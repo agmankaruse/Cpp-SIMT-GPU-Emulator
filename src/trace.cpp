@@ -63,10 +63,18 @@ void Trace::recordEvent(std::uint64_t cycle, std::size_t smId, std::size_t warpI
     }
 
     std::ostringstream row;
-    row << cycle << ',' << smId << ',' << warpId << ','
+    const bool selected = event == "ISSUE";
+    const bool eligible = stallReason.empty();
+    row << cycle << ',' << smId << ',' << 0 << ',' << warpId << ','
+        << pc << ','
         << csvEscape(instruction == nullptr ? "" : instruction->text) << ','
-        << pc << ',' << event << ',' << maskToString(activeMask) << ','
-        << csvEscape(stallReason);
+        << event << ',' << maskToString(activeMask) << ','
+        << (eligible ? "1" : "0") << ','
+        << (selected ? "1" : "0") << ','
+        << csvEscape(stallReason) << ','
+        << "" << ','
+        << "" << ','
+        << "";
     timelineRows_.push_back(row.str());
 }
 
@@ -81,7 +89,8 @@ void Trace::writeTimelineCsv() const {
         return;
     }
     std::ofstream file(timelinePath_);
-    file << "cycle,sm,warp,instruction,pc,event,active_mask,stall_reason\n";
+    file << "cycle,sm,cta,warp,pc,instruction,event,active_mask,eligible,selected,stall_reason,"
+            "memory_transaction_count,cache_result,divergence_depth\n";
     for (const auto& row : timelineRows_) {
         file << row << '\n';
     }

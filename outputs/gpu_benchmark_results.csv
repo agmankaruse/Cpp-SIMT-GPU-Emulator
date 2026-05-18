@@ -1,0 +1,12 @@
+benchmark,status,cycles,instructions_issued,IPC,occupancy,branch_divergence_events,reconvergence_events,global_memory_transactions,coalescing_efficiency,L1_hit_rate,shared_memory_bank_conflicts,barrier_stall_cycles,scheduler_idle_cycles,timeline_csv
+barrier_sync,PASS,58,114,1.966,100.000,0,0,0,100.000,0.000,0,63,0,outputs\timelines\barrier_sync_warp_timeline.csv
+branch_divergence_heavy,PASS,149,192,1.289,100.000,16,16,32,50.000,93.750,0,0,104,outputs\timelines\branch_divergence_heavy_warp_timeline.csv
+latency_hiding_many_warps,PASS,240,112,0.467,100.000,0,0,32,100.000,0.000,0,0,366,outputs\timelines\latency_hiding_many_warps_warp_timeline.csv
+memory_coalescing_contiguous,PASS,224,80,0.357,100.000,0,0,32,100.000,0.000,0,0,366,outputs\timelines\memory_coalescing_contiguous_warp_timeline.csv
+memory_coalescing_strided,PASS,224,80,0.357,100.000,0,0,1024,3.125,0.000,0,0,366,outputs\timelines\memory_coalescing_strided_warp_timeline.csv
+saxpy,PASS,256,144,0.562,100.000,0,0,48,100.000,33.333,0,0,368,outputs\timelines\saxpy_warp_timeline.csv
+scheduler_latency_hiding,PASS,232,96,0.414,100.000,0,0,32,100.000,0.000,0,0,366,outputs\timelines\scheduler_latency_hiding_warp_timeline.csv
+shared_memory_bank_conflict,PASS,75,96,1.280,100.000,0,0,0,100.000,0.000,992,0,52,outputs\timelines\shared_memory_bank_conflict_warp_timeline.csv
+shared_memory_no_conflict,PASS,48,96,2.000,100.000,0,0,0,100.000,0.000,0,0,0,outputs\timelines\shared_memory_no_conflict_warp_timeline.csv
+vector_add,PASS,332,112,0.337,100.000,0,0,48,100.000,0.000,0,0,550,outputs\timelines\vector_add_warp_timeline.csv
+warp_shuffle_reduce,PASS,72,144,2.000,100.000,0,0,0,100.000,0.000,0,0,0,outputs\timelines\warp_shuffle_reduce_warp_timeline.csv

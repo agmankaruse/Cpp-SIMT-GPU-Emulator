@@ -1,0 +1,8 @@
+Lane addresses
+   |
+   v
+Group by memory line
+   |
+   +--> contiguous lanes -> fewer transactions
+   |
+   +--> strided lanes ----> more transactions and wasted bytes

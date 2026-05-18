@@ -1,0 +1,12 @@
+benchmark,transactions,coalescing_efficiency,transactions_per_warp_memory_instruction
+barrier_sync,0,100.000,0
+branch_divergence_heavy,32,50.000,32
+latency_hiding_many_warps,32,100.000,32
+memory_coalescing_contiguous,32,100.000,32
+memory_coalescing_strided,1024,3.125,1024
+saxpy,48,100.000,48
+scheduler_latency_hiding,32,100.000,32
+shared_memory_bank_conflict,0,100.000,0
+shared_memory_no_conflict,0,100.000,0
+vector_add,48,100.000,48
+warp_shuffle_reduce,0,100.000,0

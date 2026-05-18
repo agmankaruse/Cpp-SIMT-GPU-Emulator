@@ -28,7 +28,7 @@ HALT
     std::ifstream file(path);
     std::string header;
     std::getline(file, header);
-    assert(header == "cycle,sm,warp,instruction,pc,event,active_mask,stall_reason");
+    assert(header == "cycle,sm,cta,warp,pc,instruction,event,active_mask,eligible,selected,stall_reason,memory_transaction_count,cache_result,divergence_depth");
     std::string row;
     std::getline(file, row);
     assert(row.find("ISSUE") != std::string::npos);

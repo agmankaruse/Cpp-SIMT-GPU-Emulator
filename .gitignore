@@ -1,5 +1,9 @@
 build/
+build-ninja/
 out/
+generated/
+__pycache__/
+*.pyc
 .vs/
 .vscode/
 *.user
@@ -9,7 +13,6 @@ out/
 *.pdb
 *.ilk
 *.log
-outputs/
 timeline_test.csv
 Testing/
 CMakeFiles/

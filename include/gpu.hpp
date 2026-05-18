@@ -13,6 +13,8 @@
 
 namespace simt {
 
+class InvariantChecker;
+
 class GPU {
 public:
     explicit GPU(const GPUConfig& config = GPUConfig{});
@@ -31,7 +33,17 @@ public:
     const Trace& trace() const { return trace_; }
     const GPUConfig& config() const { return config_; }
 
+    std::string dumpSMState() const;
+    std::string dumpWarpState() const;
+    std::string dumpScoreboard() const;
+    std::string dumpDivergenceStack() const;
+    std::string dumpMemoryQueue() const;
+    std::string dumpSharedMemorySummary() const;
+    std::string dumpSchedulerState() const;
+
 private:
+    friend class InvariantChecker;
+
     bool active() const;
     void configureLaunchWarps();
 

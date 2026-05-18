@@ -1,0 +1,12 @@
+PASS barrier_sync cycles=58 ipc=1.966
+PASS branch_divergence_heavy cycles=149 ipc=1.289
+PASS latency_hiding_many_warps cycles=240 ipc=0.467
+PASS memory_coalescing_contiguous cycles=224 ipc=0.357
+PASS memory_coalescing_strided cycles=224 ipc=0.357
+PASS saxpy cycles=256 ipc=0.562
+PASS scheduler_latency_hiding cycles=232 ipc=0.414
+PASS shared_memory_bank_conflict cycles=75 ipc=1.280
+PASS shared_memory_no_conflict cycles=48 ipc=2.000
+PASS vector_add cycles=332 ipc=0.337
+PASS warp_shuffle_reduce cycles=72 ipc=2.000
+wrote C:\Users\amank\OneDrive\Desktop\ProfessionalWork\Projects\Cpp-SIMT-GPU-Emulator\outputs\gpu_benchmark_results.csv

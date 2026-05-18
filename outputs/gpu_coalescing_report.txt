@@ -1,0 +1,5 @@
+GPU coalescing report
+total requested bytes: see simulator stats output
+total transferred bytes: see simulator stats output
+worst coalescing instructions: memory_coalescing_strided
+best coalescing instructions: warp_shuffle_reduce

@@ -1,6 +1,8 @@
 #include "gpu.hpp"
+#include "invariant_checker.hpp"
 #include "occupancy.hpp"
 #include "parser.hpp"
+#include "reference_gpu.hpp"
 
 #include <exception>
 #include <filesystem>
@@ -26,7 +28,11 @@ void printUsage(const char* exe) {
         << "  --lanes N                   SIMT lanes per warp\n"
         << "  --scheduler NAME            round_robin, greedy_then_oldest, oldest_ready\n"
         << "  --global-latency N          Global memory latency in cycles\n"
-        << "  --shared-latency N          Shared memory latency in cycles\n";
+        << "  --shared-latency N          Shared memory latency in cycles\n"
+        << "  --diff                      Compare emulator output against reference interpreter\n"
+        << "  --check-invariants          Run invariant checks after execution\n"
+        << "  --dump-on-fail              Dump GPU state when diff or invariant checks fail\n"
+        << "  --version                   Print simulator version\n";
 }
 
 std::size_t parseSize(const std::string& value, const std::string& option) {
@@ -44,6 +50,9 @@ int main(int argc, char** argv) {
         simt::GPUConfig config;
         bool traceEnabled = false;
         bool occupancyMode = false;
+        bool diffMode = false;
+        bool checkInvariants = false;
+        bool dumpOnFail = false;
         std::string timelinePath;
         std::string programPath;
 
@@ -58,6 +67,15 @@ int main(int argc, char** argv) {
 
             if (arg == "--trace") {
                 traceEnabled = true;
+            } else if (arg == "--diff") {
+                diffMode = true;
+            } else if (arg == "--check-invariants") {
+                checkInvariants = true;
+            } else if (arg == "--dump-on-fail") {
+                dumpOnFail = true;
+            } else if (arg == "--version") {
+                std::cout << "simt_gpu 0.1.0\n";
+                return 0;
             } else if (arg == "--timeline") {
                 timelinePath = requireValue(arg);
             } else if (arg == "--config") {
@@ -105,6 +123,25 @@ int main(int argc, char** argv) {
             simt::calculateOccupancy(config, program).print(std::cout);
         }
 
+        if (diffMode) {
+            const auto result = simt::runGpuDifferentialTest(program, config);
+            std::cout << simt::formatGpuDiffResult(result);
+            if (!result.passed && dumpOnFail) {
+                simt::GPU dumpGpu(config);
+                simt::initializeGlobalMemory(dumpGpu.globalMemory());
+                dumpGpu.loadProgram(program);
+                dumpGpu.run(false, 1'000'000, {});
+                std::cout << dumpGpu.dumpSMState()
+                          << dumpGpu.dumpWarpState()
+                          << dumpGpu.dumpScoreboard()
+                          << dumpGpu.dumpDivergenceStack()
+                          << dumpGpu.dumpMemoryQueue()
+                          << dumpGpu.dumpSharedMemorySummary()
+                          << dumpGpu.dumpSchedulerState();
+            }
+            return result.passed ? 0 : 1;
+        }
+
         if (!timelinePath.empty()) {
             const auto parent = std::filesystem::path(timelinePath).parent_path();
             if (!parent.empty()) {
@@ -114,12 +151,26 @@ int main(int argc, char** argv) {
 
         simt::GPU gpu(config);
 
-        for (std::uint32_t address = 0; address + 4 <= config.globalMemoryBytes; address += 4) {
-            gpu.globalMemory().write32(address, static_cast<std::int32_t>(address / 4));
-        }
+        simt::initializeGlobalMemory(gpu.globalMemory());
 
         gpu.loadProgram(program);
         const simt::Stats stats = gpu.run(traceEnabled, 1'000'000, timelinePath);
+        if (checkInvariants) {
+            const auto report = simt::InvariantChecker::check(gpu);
+            std::cout << report.summary();
+            if (!report.passed()) {
+                if (dumpOnFail) {
+                    std::cout << gpu.dumpSMState()
+                              << gpu.dumpWarpState()
+                              << gpu.dumpScoreboard()
+                              << gpu.dumpDivergenceStack()
+                              << gpu.dumpMemoryQueue()
+                              << gpu.dumpSharedMemorySummary()
+                              << gpu.dumpSchedulerState();
+                }
+                return 1;
+            }
+        }
 
         if (traceEnabled) {
             gpu.trace().print(std::cout);

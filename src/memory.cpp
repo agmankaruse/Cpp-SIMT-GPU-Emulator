@@ -41,6 +41,14 @@ std::int32_t ByteAddressableMemory::read32(std::uint32_t address) const {
     return static_cast<std::int32_t>(value);
 }
 
+std::vector<std::pair<std::uint32_t, std::int32_t>> ByteAddressableMemory::words() const {
+    std::vector<std::pair<std::uint32_t, std::int32_t>> snapshot;
+    for (std::uint32_t address = 0; static_cast<std::size_t>(address) + 4 <= bytes_.size(); address += 4) {
+        snapshot.push_back({address, read32(address)});
+    }
+    return snapshot;
+}
+
 void ByteAddressableMemory::write32(std::uint32_t address, std::int32_t value) {
     if (static_cast<std::size_t>(address) + 3 >= bytes_.size()) {
         throw std::out_of_range("memory write32 out of range");
